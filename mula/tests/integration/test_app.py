@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 import scheduler
-from scheduler import config, models, server, storage
+from scheduler import config, models, storage
 
 from tests.factories import OrganisationFactory
 from tests.mocks import MockKatalogusService
@@ -31,7 +31,6 @@ class AppTestCase(unittest.TestCase):
 
         # App
         self.app = scheduler.App(self.mock_ctx)
-        self.app.server = server.Server(self.mock_ctx, self.app.schedulers)
 
     def tearDown(self):
         self.app.shutdown()
@@ -131,8 +130,7 @@ class AppTestCase(unittest.TestCase):
 
         self.app.start_schedulers()
         self.app.start_monitors()
-
-        # TODO: start the server
+        self.app.start_server()
 
         # Shutdown the app
         self.app.shutdown()

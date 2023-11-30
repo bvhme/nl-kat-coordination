@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import threading
@@ -207,9 +208,19 @@ class App:
 
     def start_server(self) -> None:
         self.server = server.Server(self.ctx, self.schedulers)
+
+        # Creating a new event loop specific to the thread where
+        # the uvicorn server will run
+        loop = asyncio.new_event_loop()
+
+        # Ensure that the created event loop is recognized as the
+        # current event loop for the uvicorn server thread
+        asyncio.set_event_loop(loop)
+
+        # Run the uvicorn server asynchronously in a thread
         thread.ThreadRunner(
             name="server",
-            target=self.server.run,
+            target=lambda: loop.run_until_complete(self.server.run()),
             stop_event=self.stop_event,
             loop=False,
         ).start()
@@ -253,6 +264,7 @@ class App:
     def shutdown(self) -> None:
         """Shutdown the scheduler application, and all threads.
         """
+        breakpoint()
         self.logger.info("Shutdown initiated")
 
         self.stop_event.set()
@@ -266,11 +278,14 @@ class App:
         # to leverage a stop event.
         self.stop_threads()
 
+        self.server.shutdown()
+
         self.logger.info("Shutdown complete")
 
     def stop_threads(self) -> None:
         """Stop all threads, except the main thread.
         """
+        breakpoint()
         for t in threading.enumerate():
             if t is threading.current_thread():
                 continue

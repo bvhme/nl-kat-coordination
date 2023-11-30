@@ -49,7 +49,18 @@ class Server:
         self.schedulers: Dict[str, schedulers.Scheduler] = s
         self.config: settings.Settings = settings.Settings()
 
+        # Fastapi
         self.api = fastapi.FastAPI()
+
+        # Uvicorn
+        self.server = uvicorn.Server(
+            uvicorn.Config(
+                self.api,
+                host=str(self.ctx.config.api_host),
+                port=self.ctx.config.api_port,
+                log_config=None,
+            )
+        )
 
         # Set up OpenTelemetry instrumentation
         if self.config.host_metrics is not None:
@@ -567,10 +578,8 @@ class Server:
 
         return models.PrioritizedItem(**p_item.model_dump())
 
-    def run(self) -> None:
-        uvicorn.run(
-            self.api,
-            host=str(self.ctx.config.api_host),
-            port=self.ctx.config.api_port,
-            log_config=None,
-        )
+    async def run(self) -> None:
+        await self.server.serve()
+
+    async def shutdown(self) -> None:
+        await self.server.shutdown()
