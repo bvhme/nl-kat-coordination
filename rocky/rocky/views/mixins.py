@@ -23,6 +23,10 @@ from tools.view_helpers import (
     get_ooi_url,
 )
 
+from octopoes.config.settings import (
+    DEFAULT_SCAN_LEVEL_FILTER,
+    DEFAULT_SCAN_PROFILE_TYPE_FILTER,
+)
 from octopoes.connector import ObjectNotFoundException
 from octopoes.connector.octopoes import OctopoesAPIConnector
 from octopoes.models import OOI, Reference, ScanLevel, ScanProfileType
@@ -150,8 +154,8 @@ class OOIList:
         octopoes_connector: OctopoesAPIConnector,
         ooi_types: Set[Type[OOI]],
         valid_time: datetime,
-        scan_level: Set[ScanLevel],
-        scan_profile_type: Set[ScanProfileType],
+        scan_level: Set[ScanLevel] = DEFAULT_SCAN_LEVEL_FILTER,
+        scan_profile_type: Set[ScanProfileType] = DEFAULT_SCAN_PROFILE_TYPE_FILTER,
     ):
         self.octopoes_connector = octopoes_connector
         self.ooi_types = ooi_types

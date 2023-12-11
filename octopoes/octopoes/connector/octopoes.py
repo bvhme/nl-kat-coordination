@@ -45,11 +45,11 @@ class OctopoesAPISession(requests.Session):
         except HTTPError as error:
             if response.status_code == 404:
                 data = response.json()
-                raise ObjectNotFoundException(data["value"])
+                raise ObjectNotFoundException(data["value"]) from error
             if 500 <= response.status_code < 600:
                 data = response.json()
-                raise RemoteException(value=data["value"])
-            raise error
+                raise RemoteException(value=data["value"]) from error
+            raise
         except json.decoder.JSONDecodeError as error:
             raise DecodeException("JSON decode error") from error
 
