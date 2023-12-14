@@ -1,0 +1,10 @@
+{% extends "layouts/base.html" %}
+
+{% load i18n %}
+{% load static %}
+
+{% block content %}
+    {% include "header.html" %}
+    {% include template with data=post_processed_data %}
+
+{% endblock content %}

@@ -1,0 +1,18 @@
+{% load i18n %}
+
+<section id="recommendations">
+    <div>
+        <h2>{% translate "Recommendations" %}</h2>
+        <p>
+            {% blocktranslate count total_systems as count trimmed %}
+                There are <i>{{ total_findings }}</i> vulnerabilities found on <i>{{ total_systems }}</i>
+                system. <i>O</i> systems lack important basic security measures.
+            {% plural %}
+                systems. <i>O</i> systems lack important basic security measures.
+            {% endblocktranslate %}
+        </p>
+        <ul>
+            {% for recommendation in data %}<li>{{ recommendation }}</li>{% endfor %}
+        </ul>
+    </div>
+</section>

@@ -23,7 +23,7 @@ class SystemReport(Report):
     id = "systems-report"
     name = _("System Report")
     description = _("Combine IP addresses, hostnames and services into systems.")
-    plugins = {"required": ["nmap"], "optional": []}
+    plugins = {"required": ["dns-records", "nmap-udp", "nmap-tcp"], "optional": []}
     input_ooi_types = {Hostname, IPAddressV4, IPAddressV6}
     template_path = "systems_report/report.html"
 
@@ -107,7 +107,13 @@ class SystemReport(Report):
             ):
                 ip_services[str(ip.address)]["services"].append(WEB)
 
-        return {
-            "input_ooi": input_ooi,
-            "services": ip_services,
-        }
+        total_systems = 0
+        total_domains = 0
+
+        for system, data in ip_services.items():
+            total_systems += 1
+            total_domains += len(data["hostnames"])
+
+        summary = {"total_systems": total_systems, "total_domains": total_domains}
+
+        return {"input_ooi": input_ooi, "services": ip_services, "summary": summary}
