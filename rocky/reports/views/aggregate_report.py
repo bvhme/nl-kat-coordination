@@ -138,7 +138,14 @@ class AggregateReportView(BreadcrumbsAggregateReportView, BaseReportView, Templa
         if "json" in self.request.GET and self.request.GET["json"] == "true":
             template, post_processed_data, report_data = self.generate_reports_for_oois()
 
-            return JsonResponse(report_data)
+            response = {
+                "organization_code": self.organization.code,
+                "organization_name": self.organization.name,
+                "report_data": report_data,
+                "post_processed_data": post_processed_data,
+            }
+
+            return JsonResponse(response)
 
         return super().get(request, *args, **kwargs)
 
