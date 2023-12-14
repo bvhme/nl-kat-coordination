@@ -30,8 +30,9 @@ class AggregateOrganisationReport(AggregateReport):
         total_hostnames = 0
         terms = []
         rpki = {"rpki_ips": {}}
-        system_specific = {}
+        basic_security = {"rpki": {}}
         recommendations = []
+        total_systems_basic_securtiy = 0
 
         # input oois
         for input_ooi, report_data in data.items():
@@ -89,25 +90,27 @@ class AggregateOrganisationReport(AggregateReport):
         # RPKI
         for ip, compliance in rpki["rpki_ips"].items():
             services = systems["services"][str(ip)]["services"]
+
             for service in services:
-                if service not in system_specific:
-                    system_specific[service] = {
-                        "rpki": {
-                            "rpki_ips": {},
-                            "number_of_available": 0,
-                            "number_of_valid": 0,
-                            "number_of_ips": 0,
-                            "number_of_compliant": 0,
-                        }
+                if service not in basic_security["rpki"]:
+                    basic_security["rpki"][service] = {
+                        "rpki_ips": {},
+                        "number_of_available": 0,
+                        "number_of_valid": 0,
+                        "number_of_ips": 0,
+                        "number_of_compliant": 0,
                     }
-                if ip not in system_specific[service]["rpki"]["rpki_ips"]:
-                    system_specific[service]["rpki"]["rpki_ips"][ip] = compliance
-                    system_specific[service]["rpki"]["number_of_ips"] += 1
-                    system_specific[service]["rpki"]["number_of_available"] += 1 if compliance["exists"] else 0
-                    system_specific[service]["rpki"]["number_of_valid"] += 1 if compliance["valid"] else 0
-                    system_specific[service]["rpki"]["number_of_compliant"] += (
+                if ip not in basic_security["rpki"][service]["rpki_ips"]:
+                    basic_security["rpki"][service]["rpki_ips"][ip] = compliance
+                    basic_security["rpki"][service]["number_of_ips"] += 1
+                    basic_security["rpki"][service]["number_of_available"] += 1 if compliance["exists"] else 0
+                    basic_security["rpki"][service]["number_of_valid"] += 1 if compliance["valid"] else 0
+                    basic_security["rpki"][service]["number_of_compliant"] += (
                         1 if compliance["exists"] and compliance["valid"] else 0
                     )
+
+        terms = list(set(terms))
+        recommendations = list(set(recommendations))
 
         summary = {
             _("General recommendations"): "",
@@ -127,9 +130,10 @@ class AggregateOrganisationReport(AggregateReport):
             "open_ports": open_ports,
             "ipv6": ipv6,
             "vulnerabilities": vulnerabilities,
-            "system_specific": system_specific,
+            "basic_security": basic_security,
             "summary": summary,
             "recommendations": recommendations,
             "total_findings": total_findings,
             "total_systems": total_ips,
+            "total_systems_basic_securtiy": total_systems_basic_securtiy,
         }
