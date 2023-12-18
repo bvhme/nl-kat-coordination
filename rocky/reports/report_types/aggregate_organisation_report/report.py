@@ -92,6 +92,7 @@ class AggregateOrganisationReport(AggregateReport):
             services = systems["services"][str(ip)]["services"]
 
             for service in services:
+                service = str(service)
                 if service not in basic_security["rpki"]:
                     basic_security["rpki"][service] = {
                         "rpki_ips": {},
@@ -113,16 +114,16 @@ class AggregateOrganisationReport(AggregateReport):
         recommendations = list(set(recommendations))
 
         summary = {
-            _("General recommendations"): "",
-            _("Critical vulnerabilities"): total_criticals,
-            _("IPs scanned"): total_ips,
-            _("Domains scanned"): total_hostnames,
-            _("Sector of organisation"): "",
-            _("Basic security score compared to sector"): "",
-            _("Sector defined"): "",
-            _("Lowest security score in organisation"): "",
-            _("Newly discovered items since last week, october 8th 2023"): "",
-            _("Terms in report"): ", ".join(terms),
+            str(_("General recommendations")): "",
+            str(_("Critical vulnerabilities")): total_criticals,
+            str(_("IPs scanned")): total_ips,
+            str(_("Domains scanned")): total_hostnames,
+            str(_("Sector of organisation")): "",
+            str(_("Basic security score compared to sector")): "",
+            str(_("Sector defined")): "",
+            str(_("Lowest security score in organisation")): "",
+            str(_("Newly discovered items since last week, october 8th 2023")): "",
+            str(_("Terms in report")): ", ".join(terms),
         }
 
         return {

@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, Tuple
 
 from django.contrib import messages
@@ -21,6 +22,8 @@ from reports.views.base import (
     ReportBreadcrumbs,
 )
 from rocky.views.ooi_view import BaseOOIListView
+
+logger = logging.getLogger(__name__)
 
 
 class BreadcrumbsAggregateReportView(ReportBreadcrumbs):
@@ -126,6 +129,16 @@ class SetupScanAggregateReportView(BreadcrumbsAggregateReportView, BaseReportVie
         return context
 
 
+def debug_keys(data, path=None):
+    if path is None:
+        path = []
+    for key, value in data.items():
+        if isinstance(key, (str, int)):
+            logger.error("Key %s isn't type str or int, path is %s", key, path)
+        if isinstance(value, dict):
+            debug_keys(value, path + [key])
+
+
 class AggregateReportView(BreadcrumbsAggregateReportView, BaseReportView, TemplateView):
     """
     Shows the report generated from OOIS and report types.
@@ -141,11 +154,20 @@ class AggregateReportView(BreadcrumbsAggregateReportView, BaseReportView, Templa
             response = {
                 "organization_code": self.organization.code,
                 "organization_name": self.organization.name,
+                "organization_tags": list(self.organization.tags.all()),
                 "report_data": report_data,
                 "post_processed_data": post_processed_data,
             }
 
-            return JsonResponse(response)
+            try:
+                response = JsonResponse(response)
+            except TypeError:
+                debug_keys(report_data)
+                debug_keys(post_processed_data)
+                raise
+            else:
+                response["Content-Disposition"] = "attachment; filename=report.json"
+                return response
 
         return super().get(request, *args, **kwargs)
 
