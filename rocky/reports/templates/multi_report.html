@@ -5,17 +5,10 @@
 
 {% block content %}
     {% include "header.html" %}
+    {% include "multi_organization_report.html" %}
 
-    <main id="main-content" tabindex="-1" class="choose-report">
-        <section class="centered">
-            <div class="centered">
-                <a href="{{ report_download_url }}"
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   class="button ghost">{% translate "Download report" %}</a>
-            </div>
-        </section>
-        {% include "multi_organization_report.html" %}
-
-    </main>
 {% endblock content %}
+{% block html_at_end_body %}
+    {{ block.super }}
+    <script src="{% static "js/sidemenuOl.js" %}" nonce="{{ request.csp_nonce }}" type="module"></script>
+{% endblock html_at_end_body %}
