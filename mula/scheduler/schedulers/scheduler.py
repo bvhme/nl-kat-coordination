@@ -85,7 +85,7 @@ class Scheduler(abc.ABC):
     def run(self) -> None:
         raise NotImplementedError
 
-    def post_push(self, p_item: models.PrioritizedItem) -> None:
+    def post_push(self, p_item: models.PrioritizedItem, status: models.TaskStatus = models.TaskStatus.QUEUED) -> None:
         """When a boefje task is being added to the queue. We
         persist a task to the datastore with the status QUEUED.
 
@@ -104,7 +104,8 @@ class Scheduler(abc.ABC):
                 models.Job(
                     scheduler_id=self.scheduler_id,
                     p_item=p_item,
-                    deadline_at=datetime.now(timezone.utc) + timedelta(seconds=self.ctx.config.pq_grace_period),
+                    deadline_at=datetime.now(timezone.utc)
+                    + timedelta(seconds=self.ctx.config.pq_grace_period),  # TODO: rank this
                     created_at=datetime.now(timezone.utc),
                     modified_at=datetime.now(timezone.utc),
                 )
@@ -119,7 +120,7 @@ class Scheduler(abc.ABC):
             scheduler_id=self.scheduler_id,
             type=self.queue.item_type.type,
             p_item=p_item,
-            status=models.TaskStatus.QUEUED,
+            status=status,
             job_id=job_db.id,
             created_at=datetime.now(timezone.utc),
             modified_at=datetime.now(timezone.utc),

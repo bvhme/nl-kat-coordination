@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import structlog
+from limits import storage, strategies
 from prometheus_client import CollectorRegistry, Gauge, Info
 
 import scheduler
@@ -158,6 +159,10 @@ class AppContext:
                 storage.JobStore.name: storage.JobStore(dbconn),
             }
         )
+
+        # Rate limiter
+        self.rate_limiter = strategies.MovingWindowRateLimiter(storage=storage.MemoryStorage())
+        self.rate_limiter_lock = threading.Lock()
 
         # Metrics collector registry
         self.metrics_registry: CollectorRegistry = CollectorRegistry()

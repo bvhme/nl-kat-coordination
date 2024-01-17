@@ -1,10 +1,12 @@
 from concurrent import futures
 from datetime import datetime, timedelta, timezone
+from string import Template
 from types import SimpleNamespace
 from typing import Callable, List, Optional
 
 import requests
 import structlog
+from limits import parse
 from opentelemetry import trace
 
 from scheduler import context, models, queues, rankers
@@ -112,6 +114,13 @@ class BoefjeScheduler(Scheduler):
         self.run_in_thread(
             name=f"scheduler-{self.scheduler_id}-reschedule",
             target=self.push_tasks_for_rescheduling,
+            interval=60.0,
+        )
+
+        # Delayed tasks
+        self.run_in_thread(
+            name=f"scheduler-{self.scheduler_id}-delayed_tasks",
+            target=self.push_tasks_for_delayed_tasks,
             interval=60.0,
         )
 
@@ -392,6 +401,53 @@ class BoefjeScheduler(Scheduler):
                     boefje,
                     ooi,
                     self.push_tasks_for_rescheduling.__name__,
+                )
+
+    @tracer.start_as_current_span("boefje_push_tasks_for_delayed_tasks")
+    def push_tasks_for_delayed_tasks(self):
+        """Check for tasks that are delayed and push them to the queue
+        when the rate limit is over.
+        """
+        tasks_to_push: List[BoefjeTask] = []
+        delayed_tasks, _ = self.ctx.datastores.task_store.get_tasks(
+            scheduler_id=self.scheduler_id,
+            status=TaskStatus.DELAYED,
+            order_by="created_at",
+        )
+
+        for delayed_task in delayed_tasks:
+            task = BoefjeTask(**delayed_task.p_item.data)
+            try:
+                if not self.is_task_rate_limited(task, hit=False):
+                    tasks_to_push.append(task)
+            except ValueError:
+                self.logger.warning(
+                    "Could not push delayed task %s for organisation: %s [organisation_id=%s, scheduler_id=%s]",
+                    task,
+                    self.organisation.name,
+                    self.organisation.id,
+                    self.scheduler_id,
+                )
+                self.ctx.datastores.task_store.update_task_status(
+                    task_id=task.id,
+                    status=TaskStatus.FAILED,
+                )
+                continue
+
+        with futures.ThreadPoolExecutor() as executor:
+            for task in tasks_to_push:
+                ooi = None
+                if task.input_ooi:
+                    ooi = self.ctx.services.octopoes.get_object(
+                        organisation_id=self.organisation.id,
+                        reference=task.input_ooi,
+                    )
+
+                executor.submit(
+                    self.push_task,
+                    boefje=task.boefje,
+                    ooi=ooi,
+                    caller=self.push_tasks_for_delayed_tasks.__name__,
                 )
 
     # FIXME: deprecated
@@ -796,6 +852,19 @@ class BoefjeScheduler(Scheduler):
             hash=task.hash,
         )
 
+        if self.is_task_rate_limited(task):
+            self.logger.debug(
+                "Task is rate limited: %s",
+                task.id,
+                task_id=task.id,
+                organisation_id=self.organisation.id,
+                scheduler_id=self.scheduler_id,
+                caller=caller,
+            )
+            # Task is not on queue, and no similar task is running, so we
+            # need to create a task that is delayed.
+            self.post_push(p_item, models.TaskStatus.DELAYED)
+
         try:
             self.push_item_to_queue_with_timeout(p_item, self.max_tries)
         except queues.QueueFullError:
@@ -895,6 +964,64 @@ class BoefjeScheduler(Scheduler):
             return False
 
         return True
+
+    def is_task_rate_limited(self, task: BoefjeTask, hit: bool = True) -> bool:
+        """Checks whether a task is rate limited.
+
+        Args:
+            task: The task to check.
+            hit: Whether to hit the rate limiter or not.
+
+        Returns:
+            True if the task is rate limited, False otherwise.
+        """
+        if (rate_limit := task.boefje.rate_limit) is None:
+            return False
+
+        try:
+            parsed_rate_limit = parse(task.boefje.rate_limit.interval)  # type: ignore[union-attr]
+            if parsed_rate_limit is None:
+                raise ValueError("Invalid rate limit interval")
+        except ValueError as exc:
+            self.logger.warning(
+                "Could not parse rate limit for boefje: %s",
+                task.boefje.id,
+                boefje_id=task.boefje.id,
+                task_id=task.id,
+                task_hash=task.hash,
+                organisation_id=self.organisation.id,
+                scheduler_id=self.scheduler_id,
+            )
+            raise exc
+
+        with self.ctx.rate_limiter_lock:
+            # Get the identifier for the rate limiter
+            ratelimit_id_template = rate_limit.identifier
+
+            # https://docs.python.org/3.4/library/string.html#template-strings
+            ratelimit_id = None
+            try:
+                ratelimit_id = Template(ratelimit_id_template).substitute(task.dict())
+            except Exception:
+                self.logger.warning(
+                    "Could not parse rate limit identifier for boefje: %s",
+                    task.boefje.id,
+                    boefje_id=task.boefje.id,
+                    task_id=task.id,
+                    task_hash=task.hash,
+                    organisation_id=self.organisation.id,
+                    scheduler_id=self.scheduler_id,
+                )
+
+            can_consume = self.ctx.rate_limiter.test(parsed_rate_limit, ratelimit_id)
+            if not can_consume:
+                return True
+
+            # When we can consume, we hit the rate limiter
+            if hit:
+                self.ctx.rate_limiter.hit(parsed_rate_limit, ratelimit_id)
+
+            return False
 
     def get_boefjes_for_ooi(self, ooi) -> List[Plugin]:
         """Get available all boefjes (enabled and disabled) for an ooi.

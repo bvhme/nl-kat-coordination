@@ -28,6 +28,9 @@ class TaskStatus(str, enum.Enum):
     # Task has been pushed onto queue and is ready to be picked up
     QUEUED = "queued"
 
+    # Task has been delayed because of rate limiting
+    DELAYED = "delayed"
+
     # Task has been picked up by a worker
     DISPATCHED = "dispatched"
 

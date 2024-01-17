@@ -3,6 +3,8 @@ from typing import List, Optional, Union
 
 from pydantic import BaseModel
 
+from .rate_limit import RateLimit
+
 
 class Plugin(BaseModel):
     id: str
@@ -19,3 +21,4 @@ class Plugin(BaseModel):
     consumes: Union[str, List[str]]
     options: Optional[List[str]] = None
     produces: List[str]
+    rate_limit: Optional[RateLimit] = None
