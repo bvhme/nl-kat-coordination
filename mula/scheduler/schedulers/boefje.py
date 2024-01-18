@@ -862,7 +862,8 @@ class BoefjeScheduler(Scheduler):
                 caller=caller,
             )
             # Task is not on queue, and no similar task is running, so we
-            # need to create a task that is delayed.
+            # need to create a task that is delayed, but not pushed to the
+            # queue.
             self.post_push(p_item, models.TaskStatus.DELAYED)
 
         try:

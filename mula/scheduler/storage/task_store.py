@@ -25,6 +25,7 @@ class TaskStore:
         max_created_at: Optional[datetime] = None,
         filters: Optional[FilterRequest] = None,
         offset: int = 0,
+        order_by: Optional[str] = None,
         limit: int = 100,
     ) -> Tuple[List[models.Task], int]:
         with self.dbconn.session.begin() as session:
@@ -45,12 +46,21 @@ class TaskStore:
             if max_created_at is not None:
                 query = query.filter(models.TaskDB.created_at <= max_created_at)
 
+            if order_by is not None:
+                if order_by.startswith("-"):
+                    order_by = order_by[1:]
+                    query = query.order_by(getattr(models.TaskDB, order_by).desc())
+                else:
+                    query = query.order_by(getattr(models.TaskDB, order_by).asc())
+            else:  # default order
+                query = query.order_by(models.TaskDB.created_at.desc())
+
             if filters is not None:
                 query = apply_filter(models.TaskDB, query, filters)
 
             try:
                 count = query.count()
-                tasks_orm = query.order_by(models.TaskDB.created_at.desc()).offset(offset).limit(limit).all()
+                tasks_orm = query.offset(offset).limit(limit).all()
             except exc.ProgrammingError as e:
                 raise ValueError(f"Invalid filter: {e}") from e
 
