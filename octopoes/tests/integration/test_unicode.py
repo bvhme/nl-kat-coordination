@@ -15,12 +15,13 @@ from octopoes.models.origin import OriginType
 if os.environ.get("CI") != "1":
     pytest.skip("Needs XTDB multinode container.", allow_module_level=True)
 
-use_unicode = False
+use_unicode = True
 names = ["🐱", "★.com", "🐈"] if use_unicode else ["cat", "xn--p3h.com", "boefje"]
 
 
 def test_unicode_operations(octopoes_api_connector: OctopoesAPIConnector, valid_time: datetime):
     network = Network(name=names[0])
+    print(network.model_dump_json())
     octopoes_api_connector.save_declaration(
         Declaration(
             ooi=network,

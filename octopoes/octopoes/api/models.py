@@ -2,13 +2,13 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import AwareDatetime, BaseModel, Field
+from pydantic import AwareDatetime, Field
 
-from octopoes.models import Reference
+from octopoes.models import Reference, PotatoModel
 from octopoes.models.types import OOIType
 
 
-class ServiceHealth(BaseModel):
+class ServiceHealth(PotatoModel):
     service: str
     healthy: bool = False
     version: str | None = None
@@ -19,7 +19,7 @@ class ServiceHealth(BaseModel):
 ServiceHealth.model_rebuild()
 
 
-class _BaseObservation(BaseModel):
+class _BaseObservation(PotatoModel):
     method: str
     source: Reference
     result: list[OOIType]
@@ -35,7 +35,7 @@ class Observation(_BaseObservation):
     valid_time: datetime
 
 
-class Declaration(BaseModel):
+class Declaration(PotatoModel):
     """Used by Octopoes Connector to describe request body"""
 
     ooi: OOIType
@@ -44,7 +44,7 @@ class Declaration(BaseModel):
     task_id: uuid.UUID | None = None
 
 
-class ScanProfileDeclaration(BaseModel):
+class ScanProfileDeclaration(PotatoModel):
     reference: Reference
     level: int
     valid_time: datetime
@@ -58,7 +58,7 @@ class ValidatedObservation(_BaseObservation):
     valid_time: AwareDatetime
 
 
-class ValidatedDeclaration(BaseModel):
+class ValidatedDeclaration(PotatoModel):
     """Used by Octopoes API to validate and parse correctly"""
 
     ooi: OOIType
