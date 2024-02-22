@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from collections import Counter
 from datetime import datetime
@@ -201,17 +202,16 @@ class XTDBOOIRepository(OOIRepository):
     @classmethod
     def serialize(cls, ooi: OOI) -> dict[str, Any]:
         # export model with pydantic serializers
-        #export =  #json.loads(ooi.json())
+        export = json.loads(ooi.json())
 
-        ## prefix fields, but not object_type
-        #export.pop("object_type")
-        #export = {f"{ooi.__class__.__name__}/{key}": value for key, value in export.items() if value is not None}
+        # prefix fields, but not object_type
+        export.pop("object_type")
+        export = {f"{ooi.__class__.__name__}/{key}": value for key, value in export.items() if value is not None}
 
-        #export["object_type"] = ooi.__class__.__name__
-        #export[cls.pk_prefix] = ooi.primary_key
+        export["object_type"] = ooi.__class__.__name__
+        export[cls.pk_prefix] = ooi.primary_key
 
-        #return export
-        return ooi.model_dump_json()
+        return export
 
     @classmethod
     def deserialize(cls, data: dict[str, Any]) -> OOI:

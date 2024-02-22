@@ -6,18 +6,15 @@ from typing import (
     Any,
     ClassVar,
     Literal,
+    Optional,
     TypeVar,
+    Union,
 )
 
-import json
 from pydantic import BaseModel, GetCoreSchemaHandler, RootModel
 from pydantic_core import CoreSchema, core_schema
 from pydantic_core.core_schema import ValidationInfo
 
-class PotatoModel(BaseModel):
-
-    def model_dump_json(self, **kwargs):
-        return json.dumps(json.loads(super(PotatoModel, self).model_dump_json(**kwargs)))
 
 class Reference(str):
     @classmethod
@@ -84,7 +81,7 @@ class ScanProfileType(Enum):
     EMPTY = "empty"
 
 
-class ScanProfileBase(PotatoModel, abc.ABC):
+class ScanProfileBase(BaseModel, abc.ABC):
     scan_profile_type: str
     reference: Reference
     level: ScanLevel
@@ -118,7 +115,7 @@ class InheritedScanProfile(ScanProfileBase):
 ScanProfile = EmptyScanProfile | InheritedScanProfile | DeclaredScanProfile
 
 
-class OOI(PotatoModel, abc.ABC):
+class OOI(BaseModel, abc.ABC):
     object_type: Literal["OOI"]
 
     scan_profile: ScanProfile | None = None

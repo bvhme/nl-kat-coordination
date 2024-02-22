@@ -1,10 +1,15 @@
 from __future__ import annotations
 
-from typing import Literal
+import string
+from typing import Annotated, Literal
+
+from pydantic import StringConstraints, field_validator
 
 from octopoes.models import OOI, Reference
 from octopoes.models.ooi.network import IPAddress, Network
 from octopoes.models.persistence import ReferenceField
+
+VALID_HOSTNAME_CHARACTERS = string.ascii_letters + string.digits + "-."
 
 
 class DNSZone(OOI):
@@ -26,7 +31,7 @@ class Hostname(OOI):
     object_type: Literal["Hostname"] = "Hostname"
 
     network: Reference = ReferenceField(Network)
-    name: str
+    name: Annotated[str, StringConstraints(to_lower=True)]
 
     dns_zone: Reference | None = ReferenceField(DNSZone, max_issue_scan_level=1, max_inherit_scan_level=2, default=None)
 
@@ -41,6 +46,18 @@ class Hostname(OOI):
         "dns_zone": "hostnames",
         "registered_domain": "subdomains",
     }
+
+    @field_validator("name")
+    @classmethod
+    def hostname_valid(cls, v: str) -> str:
+        for c in v:
+            if c not in VALID_HOSTNAME_CHARACTERS:
+                raise ValueError(f"Invalid hostname character: {c}")
+
+        if v.endswith("-"):
+            raise ValueError("Hostname must not end with a hyphen")
+
+        return v
 
     @classmethod
     def format_reference_human_readable(cls, reference: Reference) -> str:

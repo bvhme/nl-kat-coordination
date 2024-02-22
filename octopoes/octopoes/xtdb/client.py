@@ -7,10 +7,9 @@ from http import HTTPStatus
 from typing import Any
 
 import requests
-from pydantic import ConfigDict, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from requests import HTTPError, Response
 
-from octopoes.models import PotatoModel
 from octopoes.models.transaction import TransactionRecord
 from octopoes.xtdb.exceptions import NodeNotFound, XTDBException
 from octopoes.xtdb.query import Query
@@ -29,7 +28,7 @@ class OperationType(Enum):
 Operation = tuple[OperationType, str | dict[str, Any], datetime | None]
 
 
-class Transaction(PotatoModel):
+class Transaction(BaseModel):
     operations: list[Operation] = Field(alias="tx-ops")
     model_config = ConfigDict(populate_by_name=True)
 
@@ -45,7 +44,7 @@ class XTDBHTTPSession(requests.Session):
         return super().request(method, self._base_url + str(url), **kwargs)
 
 
-class XTDBStatus(PotatoModel):
+class XTDBStatus(BaseModel):
     version: str | None = None
     revision: str | None = None
     indexVersion: int | None = None
@@ -145,7 +144,7 @@ class XTDBHTTPClient:
     def submit_transaction(self, operations: list[Operation]) -> None:
         res = self._session.post(
             f"{self.client_url()}/submit-tx",
-            data=Transaction(operations=operations).model_dump_json(),
+            data=Transaction(operations=operations).json(by_alias=True),
             headers={"Content-Type": "application/json"},
         )
 
