@@ -19,17 +19,29 @@ use_unicode = True
 names = ["🐱", "★.com", "🐈"] if use_unicode else ["cat", "xn--p3h.com", "boefje"]
 
 
-def test_unicode_operations(octopoes_api_connector: OctopoesAPIConnector, valid_time: datetime):
+def test_unicode_network(octopoes_api_connector: OctopoesAPIConnector, valid_time: datetime):
     network = Network(name=names[0])
-    print()
-    print(network.model_dump_json())
-    print(Network.model_validate_json(network.model_dump_json()))
     octopoes_api_connector.save_declaration(
         Declaration(
             ooi=network,
             valid_time=valid_time,
         )
     )
+
+    time.sleep(1)
+
+    assert octopoes_api_connector.list_objects(types={Network}).count == 1
+
+
+def test_unicode_hostname(octopoes_api_connector: OctopoesAPIConnector, valid_time: datetime):
+    network = Network(name="internet")
+    octopoes_api_connector.save_declaration(
+        Declaration(
+            ooi=network,
+            valid_time=valid_time,
+        )
+    )
+
     hostname = Hostname(network=network.reference, name=names[1])
     task_id = uuid.uuid4()
 
@@ -46,10 +58,8 @@ def test_unicode_operations(octopoes_api_connector: OctopoesAPIConnector, valid_
     scanprof = DeclaredScanProfile(reference=hostname.reference, level=ScanLevel.L2)
     octopoes_api_connector.save_scan_profile(scanprof, valid_time)
 
-    time.sleep(3)
+    time.sleep(1)
 
-    assert octopoes_api_connector.list_objects(types={Network}).count == 1
-    assert octopoes_api_connector.list_objects(types={Hostname}).count == 1
     assert octopoes_api_connector.list_objects(types={Network, Hostname}).count == 2
 
     origins = octopoes_api_connector.list_origins(task_id=task_id)
