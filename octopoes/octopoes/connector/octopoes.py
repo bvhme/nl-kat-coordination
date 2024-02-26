@@ -57,14 +57,14 @@ class OctopoesAPISession(requests.Session):
         method: str,
         url: str | bytes,
         params: dict | None = None,
+        headers: dict = {"Accept": "application/json"},
         **kwargs,
     ) -> requests.Response:
-        response = super().request(method, f"{self._base_uri}{url}", params, **kwargs)
+        response = super().request(method, f"{self._base_uri}{url}", params, headers = headers, **kwargs)
         self._verify_response(response)
         return response
 
 
-# todo: set default headers (accept-content, etc.)
 class OctopoesAPIConnector:
 
     """
@@ -181,14 +181,14 @@ class OctopoesAPIConnector:
         return TypeAdapter(list[Origin]).validate_json(res.content)
 
     def save_observation(self, observation: Observation) -> None:
-        self.session.post(f"/{self.client}/observations", data=observation.model_dump_json())
+        self.session.post(f"/{self.client}/observations", json=observation.model_dump_json())
 
     def save_declaration(self, declaration: Declaration) -> None:
-        self.session.post(f"/{self.client}/declarations", data=declaration.model_dump_json())
+        self.session.post(f"/{self.client}/declarations", json=declaration.model_dump_json())
 
     def save_scan_profile(self, scan_profile: ScanProfile, valid_time: datetime):
         params = {"valid_time": str(valid_time)}
-        self.session.put(f"/{self.client}/scan_profiles", params=params, data=scan_profile.model_dump_json())
+        self.session.put(f"/{self.client}/scan_profiles", params=params, json=scan_profile.model_dump_json())
 
     def save_many_scan_profiles(self, scan_profiles: list[ScanProfile], valid_time: datetime | None = None) -> None:
         params = {"valid_time": valid_time}

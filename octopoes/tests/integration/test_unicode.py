@@ -21,7 +21,9 @@ names = ["🐱", "★.com", "🐈"] if use_unicode else ["cat", "xn--p3h.com", "
 
 def test_unicode_operations(octopoes_api_connector: OctopoesAPIConnector, valid_time: datetime):
     network = Network(name=names[0])
+    print()
     print(network.model_dump_json())
+    print(Network.model_validate_json(network.model_dump_json()))
     octopoes_api_connector.save_declaration(
         Declaration(
             ooi=network,
