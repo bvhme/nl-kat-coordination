@@ -288,6 +288,18 @@ class PriorityQueue(abc.ABC):
         return item is not None
 
     @with_lock
+    def get_item_by_hash(self, item_hash: str) -> models.PrioritizedItem | None:
+        """Get an item from the queue by its hash.
+
+        Args:
+            item_hash: The hash of the item to be checked.
+
+        Returns:
+            The item if found, None otherwise.
+        """
+        return self.pq_store.get_item_by_hash(self.pq_id, item_hash)
+
+    @with_lock
     def get_p_item_by_identifier(self, p_item: models.PrioritizedItem) -> models.PrioritizedItem | None:
         """Get an item from the queue by its identifier.
 

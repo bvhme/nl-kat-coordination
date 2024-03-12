@@ -1,3 +1,4 @@
+import copy
 from collections.abc import Callable
 from concurrent import futures
 from datetime import datetime, timedelta, timezone
@@ -533,6 +534,10 @@ class BoefjeScheduler(Scheduler):
 
         return False
 
+    def is_task_batched(self, task: BoefjeTask) -> bool:
+
+        return False
+
     @tracer.start_as_current_span("boefje_push_task")
     def push_task(self, boefje: Plugin, ooi: OOI, caller: str = "") -> None:
         """Given a Boefje and OOI create a BoefjeTask and push it onto
@@ -636,6 +641,16 @@ class BoefjeScheduler(Scheduler):
                 exc_info=exc_running,
             )
             return
+
+        # TODO
+        if self.is_task_batched(task):
+            # Find task on queue
+            p_item = self.get_item_by_hash(task.hash)
+            oois = copy.copy(p_item.data.get("input_ooi"))
+            oois.append(task.input_ooi) if oois is not None else [task.input_ooi]
+
+            p_item.data["input_ooi"] = oois
+            self.queue.update_item(p_item)
 
         if self.is_item_on_queue_by_hash(task.hash):
             self.logger.debug(
@@ -811,3 +826,14 @@ class BoefjeScheduler(Scheduler):
         )
 
         return boefjes
+
+    def get_item_by_hash(self, hash: str) -> models.PrioritizedItem | None:
+        """Get a prioritized item by hash.
+
+        Args:
+            hash: The hash to get the item for.
+
+        Returns:
+            The prioritized item.
+        """
+        return self.queue.get_item_by_hash(hash)
